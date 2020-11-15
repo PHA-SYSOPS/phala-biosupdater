@@ -1,0 +1,90 @@
+---
+  - name: "Collecting EFI information"
+    stat: 
+      path: /sys/firmware/efi
+    register: efi_installed
+
+  - name: "Checking if EFI is installed, active and used for booting" 
+    fail: msg="EFI is not present, cannot continue"
+    when: not efi_installed.stat.exists or
+          not efi_installed.stat.isdir is defined or
+          not efi_installed.stat.isdir
+
+  - name: "Locate EFI disk"
+    shell: "df -h | grep boot/efi | awk '{ print $1 }' | sed 's/.$//'"
+    register: efi_drive
+
+  - name: "Locate EFI partition"
+    shell: "df -h | grep boot/efi | awk '{ print $1 }' | sed 's/\\(^.*\\)\\(.$\\)/\\2/'"
+    register: efi_partition
+
+  - name: "Locate EFI mount location"
+    shell: "df -h  | grep boot/efi | awk '{ print $6 }'"
+    register: efi_mount
+
+  - debug: msg="EFI disk located at {{ efi_drive.stdout }} on partition {{ efi_partition.stdout }} and mounted on {{ efi_mount.stdout }}"
+
+  - name: Create EFI directory
+    file: 
+      path={{efi_mount.stdout }}/EFI/biosupdate
+      state=directory 
+
+  - name: Copy EFI shell bootloader
+    action: copy
+    args:
+      src: "{{ role_path }}/files/{{ item }}"
+      dest: "{{efi_mount.stdout }}/EFI/biosupdate/{{ item }}"
+      backup: no
+    with_items:
+      - Bootx64.efi
+
+  - name: Copy BIOS update files
+    action: copy
+    args:
+      src: "{{ role_path }}/files/{{ item }}"
+      dest: "{{efi_mount.stdout }}/{{ item }}"
+      backup: no
+    with_items:
+      - startup.nsh
+      - fparts.txt
+      - fpt64.efi
+      - GLKT3824V2.bin
+
+  - name: Collection of EFI bootloader configuration
+    shell: "efibootmgr -v"
+    register: efi_bootconfig
+ 
+  - name: Collection of current EFI boot option
+    shell: "efibootmgr -v | grep BootCurrent | awk '{ print $2 }'"
+    register: efi_bootcurrent
+
+  - debug: msg="Current EFI boot option is {{ efi_bootcurrent.stdout }}"
+
+  - name: Create new EFI shell boot option
+    shell: "efibootmgr -c -d {{ efi_drive.stdout }} -p {{ efi_partition.stdout }} -L 'EFI Shell' -l '\\EFI\\biosupdate\\Bootx64.efi'"
+    when: not efi_bootconfig is search("biosupdate")
+
+  - name: Collection of created EFI boot option
+    shell: "efibootmgr -v | grep biosupdate | sed -r 's|^([^.]+).*$|\\1|; s|^[^0-9]*([0-9]+).*$|\\1|'"
+    register: efi_bootnext
+
+  - debug: msg="EFI shell boot option is created at {{ efi_bootnext.stdout }}"
+
+  - name: Setting EFI one-time next bootoption to new EFI shell
+    shell: "efibootmgr -n {{ efi_bootnext.stdout }}"
+
+  - name: Setting permission to flash
+    file:
+      path={{efi_mount.stdout }}/start-flash
+      state=touch
+
+  - name: Rebooting to initiate BIOS update (DO NOT INTERRUPT PROCESS THIS WILL TAKE SOME TIME)
+    reboot:
+      msg: "Reboot initiated by Ansible due to BIOS update"
+      connect_timeout: 5
+      reboot_timeout: 600
+      pre_reboot_delay: 0
+      post_reboot_delay: 30
+      test_command: uptime
+
+

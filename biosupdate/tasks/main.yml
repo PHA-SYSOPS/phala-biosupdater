@@ -1,0 +1,24 @@
+---
+  - name: Collection current BIOS version
+    command: "dmidecode -s bios-version"
+    register: bios_version
+
+  - name: Collection current BIOS date
+    command: "dmidecode -s bios-release-date"
+    register: bios_releasedate
+
+  - debug: msg="Current version is {{ bios_version.stdout }} released on {{ bios_releasedate.stdout }}"
+
+  - name: Checking if BIOS is eligible for update, if not skip updating
+    set_fact:
+      eligible: False
+    when: bios_version.stdout     == "5.13" and
+          bios_releasedate.stdout == "2020/11/13a"
+
+  - name: "BIOS eligeble notification {{ eligible }}"
+    debug: msg="Skipping BIOS update, this host is already running this version due to eligible is {{ eligible }}"
+    when: eligible == False
+
+  - include: start.yml
+    when: eligible == True
+

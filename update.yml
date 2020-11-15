@@ -1,0 +1,7 @@
+---
+- hosts: systems
+  remote_user: ubuntu
+  become: yes
+
+  roles:
+    - biosupdate

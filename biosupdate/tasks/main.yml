@@ -12,8 +12,8 @@
   - name: Checking if BIOS is eligible for update, if not skip updating
     set_fact:
       eligible: False
-    when: bios_version.stdout     == "5.13" and
-          bios_releasedate.stdout == "2020/11/13"
+    when: bios_version.stdout     == "5.14" and
+          bios_releasedate.stdout == "2021/01/13"
 
   - name: "BIOS eligeble notification {{ eligible }}"
     debug: msg="Skipping BIOS update, this host is already running this version due to eligible is {{ eligible }}"

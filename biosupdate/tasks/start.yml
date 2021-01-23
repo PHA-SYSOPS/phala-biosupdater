@@ -48,7 +48,7 @@
       - startup.nsh
       - fparts.txt
       - fpt64.efi
-      - 20210113.bin
+      - GLKT3824V6.bin
 
   - name: Collection of EFI bootloader configuration
     shell: "efibootmgr -v"

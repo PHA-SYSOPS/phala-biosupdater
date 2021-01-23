@@ -47,7 +47,7 @@ echo "removing start-flash file, so next boot will be normal"
 rm start-flash
 
 echo "starting flashing with binary"
-fpt64.efi -F 20210113.bin
+fpt64.efi -F GLKT3824V6.bin
 
 echo "resetting system to apply BIOS"
 reset

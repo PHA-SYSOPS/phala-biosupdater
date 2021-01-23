@@ -13,7 +13,7 @@
     set_fact:
       eligible: False
     when: bios_version.stdout     == "5.14" and
-          bios_releasedate.stdout == "2021/01/13"
+          bios_releasedate.stdout == "2021/01/23"
 
   - name: "BIOS eligeble notification {{ eligible }}"
     debug: msg="Skipping BIOS update, this host is already running this version due to eligible is {{ eligible }}"
